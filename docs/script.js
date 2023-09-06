@@ -39,6 +39,7 @@ light.position.set(1.0, 1.0, 1.0).normalize();
 scene.add(light);
 
 // Main Render Loop
+// 主渲染器循环
 const clock = new THREE.Clock();
 
 // 动画
@@ -47,6 +48,7 @@ function animate() {
 
   if (currentVrm) {
     // Update model to render physics
+    // 更新渲染器vrm模型
     currentVrm.update(clock.getDelta());
   }
   renderer.render(scene, orbitCamera);
@@ -55,7 +57,7 @@ function animate() {
 animate();
 
 /* VRM CHARACTER SETUP */
-
+// vrm 模型特征设置
 // Import Character VRM
 // 加载3d模型
 const loader = new THREE.GLTFLoader();
@@ -65,33 +67,35 @@ loader.load(
     "https://cdn.glitch.com/29e07830-2317-4b15-a044-135e73c7f840%2FAshtra.vrm?v=1630342336981",
 
     (gltf) => {
-      THREE.VRMUtils.removeUnnecessaryJoints(gltf.scene);
+      THREE.VRMUtils.removeUnnecessaryJoints(gltf.scene);  // 移除不使用的关节点
 
       THREE.VRM.from(gltf).then((vrm) => {
         scene.add(vrm.scene);
         currentVrm = vrm;
-        currentVrm.scene.rotation.y = Math.PI; // Rotate model 180deg to face camera
+        currentVrm.scene.rotation.y = Math.PI; // Rotate model 180deg to face camera  y轴旋转180°
       });
     },
-
+    // 计算模型加载进度
     (progress) => console.log("Loading model...",
         100.0 * (progress.loaded / progress.total), "%"),
-
+    // 打印错误信息
     (error) => console.error(error)
 );
 
 // Animate Rotation Helper function
+// 动画旋转辅助函数  dampener：平滑参数
 const rigRotation = (name, rotation = {x: 0, y: 0, z: 0}, dampener = 1,
     lerpAmount = 0.3) => {
   if (!currentVrm) {
     return;
   }
+  // 根据名称获得躯干
   const Part = currentVrm.humanoid.getBoneNode(
       THREE.VRMSchema.HumanoidBoneName[name]);
   if (!Part) {
     return;
   }
-
+  // 欧拉角
   let euler = new THREE.Euler(
       rotation.x * dampener,
       rotation.y * dampener,
@@ -99,10 +103,11 @@ const rigRotation = (name, rotation = {x: 0, y: 0, z: 0}, dampener = 1,
       rotation.rotationOrder || "XYZ"
   );
   let quaternion = new THREE.Quaternion().setFromEuler(euler);
-  Part.quaternion.slerp(quaternion, lerpAmount); // interpolate
+  Part.quaternion.slerp(quaternion, lerpAmount); // interpolate 球面线性插值
 };
 
 // Animate Position Helper Function
+// 动画位置计算辅助函数
 const rigPosition = (name, position = {x: 0, y: 0, z: 0}, dampener = 1,
     lerpAmount = 0.3) => {
   if (!currentVrm) {
@@ -113,12 +118,14 @@ const rigPosition = (name, position = {x: 0, y: 0, z: 0}, dampener = 1,
   if (!Part) {
     return;
   }
+  // 向量
   let vector = new THREE.Vector3(position.x * dampener, position.y * dampener,
       position.z * dampener);
   Part.position.lerp(vector, lerpAmount); // interpolate
 };
 
 let oldLookTarget = new THREE.Euler();
+// 操控人脸
 const rigFace = (riggedFace) => {
   if (!currentVrm) {
     return;
@@ -132,6 +139,7 @@ const rigFace = (riggedFace) => {
   // Simple example without winking. Interpolate based on old blendshape, then stabilize blink with `Kalidokit` helper function.
   // 插值 保证眨眼动作的流畅
   // for VRM, 1 is closed, 0 is open.
+  // vrm 模型中 眼睛1是闭眼 0是睁眼
   riggedFace.eye.l = lerp(clamp(1 - riggedFace.eye.l, 0, 1),
       Blendshape.getValue(PresetName.Blink), 0.5);
   riggedFace.eye.r = lerp(clamp(1 - riggedFace.eye.r, 0, 1),
@@ -141,7 +149,7 @@ const rigFace = (riggedFace) => {
   Blendshape.setValue(PresetName.Blink, riggedFace.eye.l);
 
   // Interpolate and set mouth blendshapes
-  // 嘴巴形状设置
+  // 插值和嘴巴形状设置
   Blendshape.setValue(PresetName.I,
       lerp(riggedFace.mouth.shape.I, Blendshape.getValue(PresetName.I), 0.5));
   Blendshape.setValue(PresetName.A,
@@ -167,6 +175,7 @@ const rigFace = (riggedFace) => {
 };
 
 /* VRM Character Animator */
+// vrm 特征动画
 const animateVRM = (vrm, results) => {
   if (!vrm) {
     return;
@@ -176,10 +185,13 @@ const animateVRM = (vrm, results) => {
 
   const faceLandmarks = results.faceLandmarks;
   // Pose 3D Landmarks are with respect to Hip distance in meters
+  // 姿势3D标志与髋关节距离相关，单位为米
   const pose3DLandmarks = results.ea;
   // Pose 2D landmarks are with respect to videoWidth and videoHeight
+  // 姿势2D标志与视频宽高有关
   const pose2DLandmarks = results.poseLandmarks;
   // Be careful, hand landmarks may be reversed
+  // 左右手进行镜像
   const leftHandLandmarks = results.rightHandLandmarks;
   const rightHandLandmarks = results.leftHandLandmarks;
 
@@ -200,6 +212,7 @@ const animateVRM = (vrm, results) => {
       runtime: "mediapipe",
       video: videoElement,
     });
+    // 臀部旋转
     rigRotation("Hips", riggedPose.Hips.rotation, 0.7);
     rigPosition(
         "Hips",
@@ -211,25 +224,36 @@ const animateVRM = (vrm, results) => {
         1,
         0.07
     );
-
+    // 胸部
     rigRotation("Chest", riggedPose.Spine, 0.25, 0.3);
+    // 脊柱
     rigRotation("Spine", riggedPose.Spine, 0.45, 0.3);
 
+    // 右上臂
     rigRotation("RightUpperArm", riggedPose.RightUpperArm, 1, 0.3);
+    // 右下臂
     rigRotation("RightLowerArm", riggedPose.RightLowerArm, 1, 0.3);
+    // 左上臂
     rigRotation("LeftUpperArm", riggedPose.LeftUpperArm, 1, 0.3);
+    // 左下臂
     rigRotation("LeftLowerArm", riggedPose.LeftLowerArm, 1, 0.3);
 
+    // 左上腿
     rigRotation("LeftUpperLeg", riggedPose.LeftUpperLeg, 1, 0.3);
+    // 左下腿
     rigRotation("LeftLowerLeg", riggedPose.LeftLowerLeg, 1, 0.3);
+    // 右上腿
     rigRotation("RightUpperLeg", riggedPose.RightUpperLeg, 1, 0.3);
+    // 右下腿
     rigRotation("RightLowerLeg", riggedPose.RightLowerLeg, 1, 0.3);
   }
 
   // Animate Hands
   // 手掌动画
   if (leftHandLandmarks) {
+    // 根据关键点位置计算移动方式
     riggedLeftHand = Kalidokit.Hand.solve(leftHandLandmarks, "Left");
+    // 左手
     rigRotation("LeftHand", {
       // Combine pose rotation Z and hand rotation X Y
       z: riggedPose.LeftHand.z,
@@ -291,9 +315,10 @@ let videoElement = document.querySelector(".input_video"),
 
 const onResults = (results) => {
   // Draw landmark guides
-  // 相机显示窗口画出关键点
+  // 相机显示窗口画出关键点（骨骼）
   drawResults(results);
   // Animate model
+  // 动画模型驱动
   animateVRM(currentVrm, results);
 };
 // 整体的
@@ -313,6 +338,7 @@ holistic.setOptions({
 // Pass holistic a callback function
 holistic.onResults(onResults);
 
+// 画骨骼信息
 const drawResults = (results) => {
   guideCanvas.width = videoElement.videoWidth;
   guideCanvas.height = videoElement.videoHeight;
@@ -359,6 +385,7 @@ const drawResults = (results) => {
 };
 
 // Use `Mediapipe` utils to get camera - lower resolution = higher fps
+// 使用工具类获取低分辨率图像以提升帧率
 const camera = new Camera(videoElement, {
   onFrame: async () => {
     await holistic.send({image: videoElement});
