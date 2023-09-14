@@ -4,19 +4,19 @@ import { IHips, XYZ, TFVectorPose } from "../Types";
 import { PI } from "./../constants";
 
 /**
- * Calculates Hip rotation and world position
+ * Calculates Hip rotation and world position   计算臀部旋转角度和世界坐标
  * @param {Array} lm3d : array of 3D pose vectors from tfjs or mediapipe
  * @param {Array} lm2d : array of 2D pose vectors from tfjs or mediapipe
  */
 export const calcHips = (lm3d: TFVectorPose, lm2d: Omit<TFVectorPose, "z">) => {
     //Find 2D normalized Hip and Shoulder Joint Positions/Distances
-    const hipLeft2d = Vector.fromArray(lm2d[23]);
-    const hipRight2d = Vector.fromArray(lm2d[24]);
-    const shoulderLeft2d = Vector.fromArray(lm2d[11]);
-    const shoulderRight2d = Vector.fromArray(lm2d[12]);
-    const hipCenter2d = hipLeft2d.lerp(hipRight2d, 1);
-    const shoulderCenter2d = shoulderLeft2d.lerp(shoulderRight2d, 1);
-    const spineLength = hipCenter2d.distance(shoulderCenter2d);
+    const hipLeft2d = Vector.fromArray(lm2d[23]);   // 左胯
+    const hipRight2d = Vector.fromArray(lm2d[24]);  // 右胯
+    const shoulderLeft2d = Vector.fromArray(lm2d[11]);  // 左肩
+    const shoulderRight2d = Vector.fromArray(lm2d[12]); // 右肩
+    const hipCenter2d = hipLeft2d.lerp(hipRight2d, 1);  // 胯中心
+    const shoulderCenter2d = shoulderLeft2d.lerp(shoulderRight2d, 1);   //  肩中心
+    const spineLength = hipCenter2d.distance(shoulderCenter2d); //  脊柱长度计算 胯中心到肩中心的距离
 
     const hips: IHips = {
         position: {
@@ -39,6 +39,7 @@ export const calcHips = (lm3d: TFVectorPose, lm2d: Omit<TFVectorPose, "z">) => {
     }
     hips.rotation.y += 0.5;
     //Stop jumping between left and right shoulder tilt
+    // 停止在左右肩倾斜的跳跃
     if (hips.rotation.z > 0) {
         hips.rotation.z = 1 - hips.rotation.z;
     }
@@ -47,7 +48,7 @@ export const calcHips = (lm3d: TFVectorPose, lm2d: Omit<TFVectorPose, "z">) => {
     }
     const turnAroundAmountHips = remap(Math.abs(hips.rotation.y), 0.2, 0.4);
     hips.rotation.z *= 1 - turnAroundAmountHips;
-    hips.rotation.x = 0; //temp fix for inaccurate X axis
+    hips.rotation.x = 0; //temp fix for inaccurate X axis  临时调整不正确的x轴
 
     const spine = Vector.rollPitchYaw(lm3d[11], lm3d[12]);
     //fix -PI, PI jumping
@@ -56,6 +57,7 @@ export const calcHips = (lm3d: TFVectorPose, lm2d: Omit<TFVectorPose, "z">) => {
     }
     spine.y += 0.5;
     //Stop jumping between left and right shoulder tilt
+    // 停止在左右肩倾斜的跳跃
     if (spine.z > 0) {
         spine.z = 1 - spine.z;
     }
@@ -63,11 +65,12 @@ export const calcHips = (lm3d: TFVectorPose, lm2d: Omit<TFVectorPose, "z">) => {
         spine.z = -1 - spine.z;
     }
     //fix weird large numbers when 2 shoulder points get too close
+    // 修正2个肩部点太近时出现的奇怪的大数字
     const turnAroundAmount = remap(Math.abs(spine.y), 0.2, 0.4);
     spine.z *= 1 - turnAroundAmount;
     spine.x = 0; //temp fix for inaccurate X axis
 
-    return rigHips(hips, spine);
+    return rigHips(hips, spine);  // 归一化值转换为弧度
 };
 
 /**
@@ -77,6 +80,7 @@ export const calcHips = (lm3d: TFVectorPose, lm2d: Omit<TFVectorPose, "z">) => {
  */
 export const rigHips = (hips: IHips, spine: Vector | XYZ) => {
     //convert normalized values to radians
+    // 将归一化值转换为弧度
     if (hips.rotation) {
         hips.rotation.x *= Math.PI;
         hips.rotation.y *= Math.PI;

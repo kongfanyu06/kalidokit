@@ -49,16 +49,23 @@ export class PoseSolver {
                 e.visibility = e.score;
             }
         }
-
+        // 计算手臂
         const Arms = calcArms(lm3d);
+        // 计算臀部
         const Hips = calcHips(lm3d, lm2d);
+        // 计算腿
         const Legs = enableLegs ? calcLegs(lm3d) : null;
 
         //DETECT OFFSCREEN AND RESET VALUES TO DEFAULTS
+        // 根据关键点的位置判断是否处于镜头外
+        // 右手
         const rightHandOffscreen = lm3d[15].y > 0.1 || (lm3d[15].visibility ?? 0) < 0.23 || 0.995 < lm2d[15].y;
+        // 左手
         const leftHandOffscreen = lm3d[16].y > 0.1 || (lm3d[16].visibility ?? 0) < 0.23 || 0.995 < lm2d[16].y;
 
+        // 左脚
         const leftFootOffscreen = lm3d[23].y > 0.1 || (lm3d[23].visibility ?? 0) < 0.63 || Hips.Hips.position.z > -0.4;
+        // 右脚
         const rightFootOffscreen = lm3d[24].y > 0.1 || (lm3d[24].visibility ?? 0) < 0.63 || Hips.Hips.position.z > -0.4;
 
         Arms.UpperArm.l = Arms.UpperArm.l.multiply(leftHandOffscreen ? 0 : 1);
@@ -73,6 +80,7 @@ export class PoseSolver {
         Arms.Hand.r = Arms.Hand.r.multiply(rightHandOffscreen ? 0 : 1);
 
         //skip calculations if disable legs
+        // 如果只展示上半身则不计算腿
         if (Legs) {
             Legs.UpperLeg.l = Legs.UpperLeg.l.multiply(rightFootOffscreen ? 0 : 1);
             Legs.UpperLeg.r = Legs.UpperLeg.r.multiply(leftFootOffscreen ? 0 : 1);

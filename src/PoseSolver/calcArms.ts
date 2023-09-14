@@ -5,8 +5,8 @@ import { RIGHT, LEFT } from "./../constants";
 import { PI } from "./../constants";
 
 /**
- * Calculates arm rotation as euler angles
- * @param {Array} lm : array of 3D pose vectors from tfjs or mediapipe
+ * Calculates arm rotation as euler angles   计算手臂旋转欧拉角
+ * @param {Array} lm : array of 3D pose vectors from tfjs or mediapipe   3D姿态数据
  */
 export const calcArms = (lm: Results) => {
     //Pure Rotation Calculations
