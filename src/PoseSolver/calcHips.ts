@@ -5,6 +5,7 @@ import { PI } from "./../constants";
 
 /**
  * Calculates Hip rotation and world position   计算臀部旋转角度和世界坐标
+ * Three.js默认坐标系一个默认y轴向上的右手坐标系 (opens new window)，x轴水平向右，z轴垂直Canvas画布向外。
  * @param {Array} lm3d : array of 3D pose vectors from tfjs or mediapipe
  * @param {Array} lm2d : array of 2D pose vectors from tfjs or mediapipe
  */

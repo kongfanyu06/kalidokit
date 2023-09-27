@@ -1,0 +1,1 @@
+Three.js默认坐标系一个默认y轴向上的右手坐标系 (opens new window)，x轴水平向右，z轴垂直Canvas画布向外。
